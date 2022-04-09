@@ -1,0 +1,74 @@
+version: "3.7"
+
+services:
+
+  consul:
+    image: consul
+    container_name: consul
+    environment:
+      - CONSUL_BIND_INTERFACE=eth0
+      - ui
+      - server
+      - bootstrap
+      - client=0.0.0.0
+      - CONSUL_ALLOW_PRIVILEGED_PORTS=yes
+    ports:
+      - 8600:8600
+      - 8500:8500
+      - 8300:8300
+    volumes:
+      - "./consul/data/:/consul/data"
+    restart: always
+    networks:
+      - main_network
+
+  consul-template:
+    image: hashicorp/consul-template:alpine
+    container_name: consul-template
+    volumes:
+      - "./consul-template:/consul-template"
+      - "./api-gateway/haproxy/:/etc/haproxy/"
+    command: consul-template -config /consul-template/consul-template.hcl
+    depends_on:
+      - consul
+    networks:
+      - main_network
+
+  api-gateway:
+    image: api-gateway-service:latest
+    container_name: api-gateway
+    build:
+      context: api-gateway
+    volumes:
+      - "./api-gateway/haproxy/:/etc/haproxy/"
+    depends_on:
+      - consul
+    ports:
+      - 8000:8000
+    restart: on-failure
+    networks:
+      - main_network
+
+  user:
+    image: user-service:latest
+    build: ./user-service
+    container_name: user_service
+    restart: always
+    depends_on:
+      - consul
+    networks: 
+      - main_network
+
+  product:
+    image: product-service:latest
+    build: ./product-service
+    container_name: product_service
+    restart: always
+    depends_on:
+      - consul
+    networks: 
+      - main_network
+
+networks:
+  main_network:
+    driver: bridge
