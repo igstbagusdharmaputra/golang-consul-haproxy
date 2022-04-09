@@ -3,5 +3,5 @@
 ### Up Service
 docker-compose up -d --build
 
-### 2. Down Service 
+### Down Service 
 docker-compose down -v
